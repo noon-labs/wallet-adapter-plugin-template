@@ -1,0 +1,1 @@
+export { LunchWallet as MyWallet } from './wallet'

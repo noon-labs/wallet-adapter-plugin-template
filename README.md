@@ -1,3 +1,8 @@
+# Lunch Wallet Adapter Plugin Demo
+npx webpack => bundle.js
+
+bundle.js 웹뷰에 로드하면 registerWallet 함수를 호출하고 dapp 에서 이벤트를 받아서 지갑을 탐색합니다.
+
 # WARNING - This template is outdated
 Follow the instructions [here](https://aptos.dev/integration/wallet-adapter-for-wallets/#aip-62-wallet-standard) to implement an [AIP-62](https://github.com/aptos-foundation/AIPs/blob/main/aips/aip-62.md) wallet adapter plugin.
 
