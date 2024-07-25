@@ -23,15 +23,39 @@ import {
   IdentifierArray,
   NetworkInfo,
   UserResponse,
-  registerWallet,
   AptosWalletAccount,
   AptosOnNetworkChangeMethod,
   AptosFeatures,
   UserResponseStatus,
   AptosChangeNetworkMethod,
   AptosChangeNetworkOutput,
+  AptosSignAndSubmitTransactionMethod,
+  AptosSignAndSubmitTransactionInput,
+  AptosSignAndSubmitTransactionOutput,
 } from "@aptos-labs/wallet-standard";
 
+// REVISION - Rename AptosWindow to <Your Wallet Name>Window. Ex. "PetraWindow"
+// Ensure that you update all references to AptosWindow with the new name.
+interface LunchWindow extends Window {
+  // REVISION - Rename "aptos" to your wallet name in all lowercase. Ex. "petra"
+  // This must match your wallet's name property.
+  // Ensure that you update all references to `AptosWindow.aptos` with the new name.
+  aptosWebView?: AptosWebView;
+}
+/**
+ * A window containing a DOM document; the document property points to the DOM document loaded in that window.
+ * We have extended it to include the plugin provider you implement with the required features.
+ */
+declare const window: LunchWindow;
+
+interface AptosWebView {
+  getAptosMnemonics: () => Promise<string>;
+  getAptosNetwork: () => Promise<string>;
+  aptosTransactionSubmitted: (hash: string) => void;
+  handleResponse: (id: number, result: string) => void;
+  handleError: (id: number, error: any) => void;
+  callbacks: { [key: number]: (error: any, data: any) => void };
+}
 /**
  * This class is a template you can modify to implement an AIP-62 Wallet.
  *
@@ -74,14 +98,15 @@ export class LunchWalletAccount implements AptosWalletAccount {
    * It is recommended to support at least ["aptos:devnet", "aptos:testnet", and "aptos:mainnet"].
    */
   chains: IdentifierArray = APTOS_CHAINS;
-
   /**
    * Function names of features that are supported for this Wallet's account object.
    */
   features: IdentifierArray = [
     "aptos:connect",
     "aptos:network",
+    "aptos:changeNetwork",
     "aptos:disconnect",
+    "aptos:signAndSubmitTransaction",
     "aptos:signTransaction",
     "aptos:signMessage",
     "aptos:onAccountChange",
@@ -126,6 +151,8 @@ export class LunchWalletAccount implements AptosWalletAccount {
  * 3. Implement each of the features below. (Including adding implementations for any additional required features that you can find here in the "AptosFeatures" type: https://github.com/aptos-labs/wallet-standard/blob/main/src/features/index.ts)
  */
 export class LunchWallet implements AptosWallet {
+  provider: AptosWebView | undefined;
+
   // REVISION - Include the link to create an account using your wallet or your primary website. (Ex. https://chromewebstore.google.com/detail/petra-aptos-wallet/ejjladinnckdgjemekebdpeokbikhfci?hl=en)
   readonly url: string = "https://lunchlunch.xyz";
   // This should be updated whenever you release a new implementation of "MyWallet"
@@ -175,8 +202,8 @@ export class LunchWallet implements AptosWallet {
    *
    * Remember: These two variables SHOULD LIKELY BE DELETED after you replace your implementations of each feature with ones that use your Wallet.
    */
-  signer: Account;
-  aptos: Aptos;
+  signer: Account | undefined;
+  aptos: Aptos | undefined;
 
   /**
    * REVISION - List all features your wallet supports below.
@@ -211,6 +238,10 @@ export class LunchWallet implements AptosWallet {
         version: "1.0.0",
         disconnect: this.disconnect,
       },
+      "aptos:signAndSubmitTransaction": {
+        version: "1.1.0",
+        signAndSubmitTransaction: this.signAndSubmitTransaction,
+      },
       "aptos:signTransaction": {
         version: "1.0.0",
         signTransaction: this.signTransaction,
@@ -242,20 +273,34 @@ export class LunchWallet implements AptosWallet {
    *
    */
   constructor() {
-    // THIS LOGIC SHOULD BE REPLACED. IT IS FOR EXAMPLE PURPOSES ONLY.
-    // Create a random signer for our stub implementations.
-    this.signer = Account.generate();
-    // We will use DEVNET since we can fund our test account via a faucet there.
-    const aptosConfig = new AptosConfig({
-      network: Network.TESTNET,
-    });
-    // Use the instance Aptos connection to process requests.
-    this.aptos = new Aptos(aptosConfig);
-
-    // Update our Wallet object to know that we are connected to this new signer.
-    this.accounts = [new LunchWalletAccount(this.signer)];
+    this.provider =
+      typeof window !== "undefined" ? window.aptosWebView : undefined;
   }
 
+  async initialize(): Promise<void> {
+    console.log("initialize function called");
+    const mnemonics = await this.provider?.getAptosMnemonics();
+    if (mnemonics === undefined) return;
+    this.signer = Account.fromDerivationPath({
+      path: "m/44'/637'/0'/0'/0'",
+      mnemonic: mnemonics,
+    });
+    const networkString = await this.provider?.getAptosNetwork();
+    if (networkString === undefined) return;
+    let network: Network;
+    if (networkString === "testnet") {
+      network = Network.TESTNET;
+    } else if (networkString === "devnet") {
+      network = Network.DEVNET;
+    } else {
+      network = Network.MAINNET;
+    }
+    const aptosConfig = new AptosConfig({
+      network,
+    });
+    this.aptos = new Aptos(aptosConfig);
+    this.accounts = [new LunchWalletAccount(this.signer)];
+  }
   /**
    * REVISION - Implement this function using your Wallet.
    *
@@ -264,11 +309,13 @@ export class LunchWallet implements AptosWallet {
    * @returns Return account info.
    */
   account: AptosGetAccountMethod = async (): Promise<AccountInfo> => {
+    console.log("account function called");
+    if (this.signer === undefined) throw new Error("Empty Signer.");
     const account = new AccountInfo({
       address: this.signer.accountAddress,
       publicKey: this.signer.publicKey,
     });
-    return Promise.resolve(account);
+    return account;
   };
 
   /**
@@ -290,12 +337,9 @@ export class LunchWallet implements AptosWallet {
   connect: AptosConnectMethod = async (): Promise<
     UserResponse<AccountInfo>
   > => {
-    // THIS LOGIC SHOULD BE REPLACED. IT IS FOR EXAMPLE PURPOSES ONLY.
+    console.log("connect function called");
     try {
-      await this.aptos.fundAccount({
-        accountAddress: this.signer.accountAddress,
-        amount: 1_000_000,
-      });
+      if (this.signer === undefined) throw new Error("Empty Signer.");
       const account = new AccountInfo({
         address: this.signer.accountAddress,
         publicKey: this.signer.publicKey,
@@ -319,15 +363,16 @@ export class LunchWallet implements AptosWallet {
    * @returns Which network the connected Wallet is pointing to.
    */
   network: AptosGetNetworkMethod = async (): Promise<NetworkInfo> => {
-    // THIS LOGIC SHOULD BE REPLACED. IT IS FOR EXAMPLE PURPOSES ONLY.
+    console.log("network function called");
+    if (this.aptos === undefined) throw new Error("Empty Aptos.");
     // You may use getLedgerInfo() to determine which ledger your Wallet is connected to.
     const network = await this.aptos.getLedgerInfo();
+
     return {
       // REVISION - Ensure the name and url match the chain_id your wallet responds with.
-      name: Network.DEVNET,
+      name: this.aptos.config.network,
       // REVISION - For mainnet and testnet is not recommended to make the getLedgerInfo() network call as the chain_id is fixed for those networks.
       chainId: network.chain_id,
-      url: "https://fullnode.devnet.aptoslabs.com/v1",
     };
   };
 
@@ -339,7 +384,7 @@ export class LunchWallet implements AptosWallet {
    * @returns Resolves when done cleaning up.
    */
   disconnect: AptosDisconnectMethod = async (): Promise<void> => {
-    // THIS LOGIC SHOULD BE REPLACED. IT IS FOR EXAMPLE PURPOSES ONLY.
+    console.log("changeNetwork function called");
     this.accounts = [];
     return Promise.resolve();
   };
@@ -347,14 +392,50 @@ export class LunchWallet implements AptosWallet {
   changeNetwork: AptosChangeNetworkMethod = async (): Promise<
     UserResponse<AptosChangeNetworkOutput>
   > => {
+    console.log("changeNetwork function called");
     return Promise.resolve({
-      status: UserResponseStatus.REJECTED,
+      status: UserResponseStatus.APPROVED,
       args: {
-        network: "mainnet",
+        success: true,
       },
     });
   };
 
+  signAndSubmitTransaction: AptosSignAndSubmitTransactionMethod = async (
+    transaction: AptosSignAndSubmitTransactionInput
+  ): Promise<UserResponse<AptosSignAndSubmitTransactionOutput>> => {
+    console.log("signAndSubmitTransaction function called");
+    if (this.aptos === undefined || this.signer === undefined) {
+      return Promise.resolve({
+        status: UserResponseStatus.REJECTED,
+      });
+    }
+    try {
+      const tx = await this.aptos.transaction.build.simple({
+        sender: this.signer.accountAddress,
+        data: transaction.payload,
+        options: {
+          gasUnitPrice: transaction.gasUnitPrice,
+          maxGasAmount: transaction.maxGasAmount,
+        },
+      });
+      const committedTransaction = await this.aptos.signAndSubmitTransaction({
+        signer: this.signer,
+        transaction: tx,
+      });
+      this.provider?.aptosTransactionSubmitted(committedTransaction.hash);
+      return Promise.resolve({
+        status: UserResponseStatus.APPROVED,
+        args: {
+          hash: committedTransaction.hash,
+        },
+      });
+    } catch {
+      return Promise.resolve({
+        status: UserResponseStatus.REJECTED,
+      });
+    }
+  };
   /**
    * REVISION - Implement this function using your Wallet.
    *
@@ -366,13 +447,18 @@ export class LunchWallet implements AptosWallet {
     transaction: AnyRawTransaction,
     asFeePayer?: boolean
   ): Promise<UserResponse<AccountAuthenticator>> => {
-    // THIS LOGIC SHOULD BE REPLACED. IT IS FOR EXAMPLE PURPOSES ONLY.
+    console.log("signTransaction function called");
+    if (this.aptos === undefined || this.signer === undefined) {
+      return Promise.resolve({
+        status: UserResponseStatus.REJECTED,
+      });
+    }
+
     if (asFeePayer) {
       const senderAuthenticator = this.aptos.transaction.signAsFeePayer({
         signer: this.signer,
         transaction,
       });
-
       return Promise.resolve({
         status: UserResponseStatus.APPROVED,
         args: senderAuthenticator,
@@ -382,7 +468,6 @@ export class LunchWallet implements AptosWallet {
       signer: this.signer,
       transaction,
     });
-
     return Promise.resolve({
       status: UserResponseStatus.APPROVED,
       args: senderAuthenticator,
@@ -398,10 +483,15 @@ export class LunchWallet implements AptosWallet {
   signMessage: AptosSignMessageMethod = async (
     input: AptosSignMessageInput
   ): Promise<UserResponse<AptosSignMessageOutput>> => {
-    // THIS LOGIC SHOULD BE REPLACED. IT IS FOR EXAMPLE PURPOSES ONLY.
+    console.log("signMessage function called");
+    if (this.signer === undefined) {
+      return Promise.resolve({
+        status: UserResponseStatus.REJECTED,
+      });
+    }
     // 'Aptos' + application + address + nonce + chainId + message
     const messageToSign = `Aptos
-      demoAdapter
+      LunchLunch
       ${this.signer.accountAddress.toString()}
       ${input.nonce}
       ${input.chainId ?? (await this.network()).chainId}
@@ -432,7 +522,7 @@ export class LunchWallet implements AptosWallet {
    * @returns when the logic is resolved.
    */
   onAccountChange: AptosOnAccountChangeMethod = async (): Promise<void> => {
-    // THIS LOGIC SHOULD BE REPLACED. IT IS FOR EXAMPLE PURPOSES ONLY.
+    console.log("onAccountChang function called");
     return Promise.resolve();
   };
 
@@ -444,7 +534,7 @@ export class LunchWallet implements AptosWallet {
    * @returns when the logic is resolved.
    */
   onNetworkChange: AptosOnNetworkChangeMethod = async (): Promise<void> => {
-    // THIS LOGIC SHOULD BE REPLACED. IT IS FOR EXAMPLE PURPOSES ONLY.
+    console.log("onNetworkChange function called");
     return Promise.resolve();
   };
 }
