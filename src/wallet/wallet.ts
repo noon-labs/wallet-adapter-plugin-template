@@ -50,7 +50,8 @@ declare const window: LunchWindow;
 
 interface AptosWebView {
   getAptosMnemonics: () => Promise<string>;
-  getAptosNetwork: () => Promise<string>;
+  getAptosRestUrl: () => Promise<string>;
+  getAptosFaucetUrl: () => Promise<string>;
   aptosTransactionSubmitted: (hash: string) => void;
   handleResponse: (id: number, result: string) => void;
   handleError: (id: number, error: any) => void;
@@ -285,19 +286,14 @@ export class LunchWallet implements AptosWallet {
       path: "m/44'/637'/0'/0'/0'",
       mnemonic: mnemonics,
     });
-    const networkString = await this.provider?.getAptosNetwork();
-    if (networkString === undefined) return;
-    let network: Network;
-    if (networkString === "testnet") {
-      network = Network.TESTNET;
-    } else if (networkString === "devnet") {
-      network = Network.DEVNET;
-    } else {
-      network = Network.MAINNET;
-    }
+    const restUrl = await this.provider?.getAptosRestUrl();
+    const faucetUrl = await this.provider?.getAptosFaucetUrl();
     const aptosConfig = new AptosConfig({
-      network,
+      fullnode: restUrl ?? "https://aptos.testnet.suzuka.movementlabs.xyz/v1",
+      faucet: faucetUrl ?? "https://faucet.testnet.suzuka.movementlabs.xyz",
     });
+    console.log(`rest Url: ${restUrl}`);
+    console.log(`faucet Url: ${faucetUrl}`);
     this.aptos = new Aptos(aptosConfig);
     this.accounts = [new LunchWalletAccount(this.signer)];
   }

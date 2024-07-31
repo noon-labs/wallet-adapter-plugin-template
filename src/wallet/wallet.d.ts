@@ -2,7 +2,8 @@ import { Account, Aptos, SigningScheme } from "@aptos-labs/ts-sdk";
 import { AptosConnectMethod, AptosDisconnectMethod, AptosGetAccountMethod, AptosGetNetworkMethod, AptosOnAccountChangeMethod, AptosSignMessageMethod, AptosSignTransactionMethod, AptosWallet, IdentifierArray, AptosWalletAccount, AptosOnNetworkChangeMethod, AptosFeatures, AptosChangeNetworkMethod, AptosSignAndSubmitTransactionMethod } from "@aptos-labs/wallet-standard";
 interface AptosWebView {
     getAptosMnemonics: () => Promise<string>;
-    getAptosNetwork: () => Promise<string>;
+    getAptosRestUrl: () => Promise<string>;
+    getAptosFaucetUrl: () => Promise<string>;
     aptosTransactionSubmitted: (hash: string) => void;
     handleResponse: (id: number, result: string) => void;
     handleError: (id: number, error: any) => void;
