@@ -32,7 +32,12 @@ import {
   AptosSignAndSubmitTransactionMethod,
   AptosSignAndSubmitTransactionInput,
   AptosSignAndSubmitTransactionOutput,
+  AptosOnAccountChangeInput,
+  AptosOnNetworkChangeInput,
+  AptosChangeNetworkInput,
+  AptosConnectInput,
 } from "@aptos-labs/wallet-standard";
+import { PluginProvider } from "@aptos-labs/wallet-adapter-core";
 
 // REVISION - Rename AptosWindow to <Your Wallet Name>Window. Ex. "PetraWindow"
 // Ensure that you update all references to AptosWindow with the new name.
@@ -330,10 +335,11 @@ export class LunchWallet implements AptosWallet {
    * @returns Whether the user approved connecting their account, and account info.
    * @throws Error when unable to connect to the Wallet provider.
    */
-  connect: AptosConnectMethod = async (): Promise<
-    UserResponse<AccountInfo>
-  > => {
+  connect: AptosConnectMethod = async (
+    ...args: AptosConnectInput
+  ): Promise<UserResponse<AccountInfo>> => {
     console.log("connect function called");
+    console.log(args);
     try {
       if (this.signer === undefined) throw new Error("Empty Signer.");
       const account = new AccountInfo({
@@ -363,12 +369,12 @@ export class LunchWallet implements AptosWallet {
     if (this.aptos === undefined) throw new Error("Empty Aptos.");
     // You may use getLedgerInfo() to determine which ledger your Wallet is connected to.
     const network = await this.aptos.getLedgerInfo();
-
     return {
       // REVISION - Ensure the name and url match the chain_id your wallet responds with.
       name: this.aptos.config.network,
       // REVISION - For mainnet and testnet is not recommended to make the getLedgerInfo() network call as the chain_id is fixed for those networks.
       chainId: network.chain_id,
+      url: this.aptos.config.fullnode,
     };
   };
 
@@ -385,10 +391,11 @@ export class LunchWallet implements AptosWallet {
     return Promise.resolve();
   };
 
-  changeNetwork: AptosChangeNetworkMethod = async (): Promise<
-    UserResponse<AptosChangeNetworkOutput>
-  > => {
+  changeNetwork: AptosChangeNetworkMethod = async (
+    input: AptosChangeNetworkInput
+  ): Promise<UserResponse<AptosChangeNetworkOutput>> => {
     console.log("changeNetwork function called");
+    console.log(input);
     return Promise.resolve({
       status: UserResponseStatus.APPROVED,
       args: {
@@ -401,12 +408,14 @@ export class LunchWallet implements AptosWallet {
     transaction: AptosSignAndSubmitTransactionInput
   ): Promise<UserResponse<AptosSignAndSubmitTransactionOutput>> => {
     console.log("signAndSubmitTransaction function called");
+
     if (this.aptos === undefined || this.signer === undefined) {
       return Promise.resolve({
         status: UserResponseStatus.REJECTED,
       });
     }
     try {
+      console.log("Try");
       const tx = await this.aptos.transaction.build.simple({
         sender: this.signer.accountAddress,
         data: transaction.payload,
@@ -415,11 +424,18 @@ export class LunchWallet implements AptosWallet {
           maxGasAmount: transaction.maxGasAmount,
         },
       });
+      console.log("Tx Generated");
       const committedTransaction = await this.aptos.signAndSubmitTransaction({
         signer: this.signer,
         transaction: tx,
       });
+      console.log("After sign and submit");
       this.provider?.aptosTransactionSubmitted(committedTransaction.hash);
+
+      await this.aptos.waitForTransaction({
+        transactionHash: committedTransaction.hash,
+      });
+      console.log("wait done");
       return Promise.resolve({
         status: UserResponseStatus.APPROVED,
         args: {
@@ -517,8 +533,11 @@ export class LunchWallet implements AptosWallet {
    *
    * @returns when the logic is resolved.
    */
-  onAccountChange: AptosOnAccountChangeMethod = async (): Promise<void> => {
-    console.log("onAccountChang function called");
+  onAccountChange: AptosOnAccountChangeMethod = async (
+    input: AptosOnAccountChangeInput
+  ): Promise<void> => {
+    console.log("onAccountChange function called");
+    console.log(input);
     return Promise.resolve();
   };
 
@@ -529,8 +548,11 @@ export class LunchWallet implements AptosWallet {
    *
    * @returns when the logic is resolved.
    */
-  onNetworkChange: AptosOnNetworkChangeMethod = async (): Promise<void> => {
+  onNetworkChange: AptosOnNetworkChangeMethod = async (
+    input: AptosOnNetworkChangeInput
+  ): Promise<void> => {
     console.log("onNetworkChange function called");
+    console.log(input);
     return Promise.resolve();
   };
 }
