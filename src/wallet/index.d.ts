@@ -1,2 +1,2 @@
-export { LunchWallet as MyWallet } from "./wallet";
+export { AptosStandard } from "./wallet";
 //# sourceMappingURL=index.d.ts.map

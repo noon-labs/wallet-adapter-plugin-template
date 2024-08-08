@@ -1,2 +1,2 @@
-export { MyWallet } from "./wallet";
+export {};
 //# sourceMappingURL=index.d.ts.map

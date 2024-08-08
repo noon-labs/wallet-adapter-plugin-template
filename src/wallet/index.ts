@@ -1,1 +1,1 @@
-export { LunchWallet as MyWallet } from "./wallet";
+export { AptosStandard } from "./wallet";
