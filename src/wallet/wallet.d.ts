@@ -1,5 +1,5 @@
 import { Account, Aptos, SigningScheme } from "@aptos-labs/ts-sdk";
-import { AptosConnectMethod, AptosDisconnectMethod, AptosGetAccountMethod, AptosGetNetworkMethod, AptosOnAccountChangeMethod, AptosSignMessageMethod, AptosSignTransactionMethod, AptosWallet, IdentifierArray, AptosWalletAccount, AptosOnNetworkChangeMethod, AptosFeatures, AptosSignAndSubmitTransactionMethod } from "@aptos-labs/wallet-standard";
+import { AptosConnectMethod, AptosDisconnectMethod, AptosGetAccountMethod, AptosGetNetworkMethod, AptosOnAccountChangeMethod, AptosSignMessageMethod, AptosSignTransactionMethod, AptosWallet, IdentifierArray, AptosWalletAccount, AptosOnNetworkChangeMethod, AptosFeatures, AptosSignAndSubmitTransactionMethod, AptosChangeNetworkMethod } from "@aptos-labs/wallet-standard";
 interface AptosWebView {
     getAptosMnemonics: () => Promise<string>;
     getAptosRestUrl: () => Promise<string>;
@@ -43,6 +43,7 @@ export declare class AptosStandard implements AptosWallet {
     signMessage: AptosSignMessageMethod;
     onAccountChange: AptosOnAccountChangeMethod;
     onNetworkChange: AptosOnNetworkChangeMethod;
+    changeNetwork: AptosChangeNetworkMethod;
 }
 export {};
 //# sourceMappingURL=wallet.d.ts.map

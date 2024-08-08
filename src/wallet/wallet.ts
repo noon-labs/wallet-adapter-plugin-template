@@ -33,6 +33,9 @@ import {
   AptosConnectInput,
   APTOS_TESTNET_CHAIN,
   APTOS_MAINNET_CHAIN,
+  AptosChangeNetworkMethod,
+  AptosChangeNetworkInput,
+  AptosChangeNetworkOutput,
 } from "@aptos-labs/wallet-standard";
 
 interface LunchWindow extends Window {
@@ -136,6 +139,10 @@ export class AptosStandard implements AptosWallet {
       "aptos:account": {
         version: "1.0.0",
         account: this.account,
+      },
+      "aptos:changeNetwork": {
+        version: "1.0.0",
+        changeNetwork: this.changeNetwork,
       },
     };
   }
@@ -340,5 +347,17 @@ export class AptosStandard implements AptosWallet {
     const network = await this.network();
     input(network);
     return Promise.resolve();
+  };
+
+  changeNetwork: AptosChangeNetworkMethod = async (
+    input: AptosChangeNetworkInput
+  ): Promise<UserResponse<AptosChangeNetworkOutput>> => {
+    console.log("changeNetwork function called");
+    return Promise.resolve({
+      status: UserResponseStatus.APPROVED,
+      args: {
+        success: true,
+      },
+    });
   };
 }
