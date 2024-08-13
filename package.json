@@ -19,6 +19,7 @@
   "dependencies": {
     "@aptos-labs/wallet-adapter-core": "^3.5.0",
     "@aptos-labs/wallet-standard": "^0.1.0",
+    "@mysten/wallet-standard": "^0.13.0",
     "aptos": "^1.21.0"
   },
   "devDependencies": {

@@ -46,4 +46,4 @@ export declare class AptosStandard implements AptosWallet {
     changeNetwork: AptosChangeNetworkMethod;
 }
 export {};
-//# sourceMappingURL=wallet.d.ts.map
+//# sourceMappingURL=aptosWallet.d.ts.map
