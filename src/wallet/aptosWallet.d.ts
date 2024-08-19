@@ -32,7 +32,7 @@ export declare class AptosStandard implements AptosWallet {
     signer: Account | undefined;
     aptos: Aptos | undefined;
     get features(): AptosFeatures;
-    constructor();
+    constructor(name?: string);
     initialize(): Promise<void>;
     account: AptosGetAccountMethod;
     connect: AptosConnectMethod;

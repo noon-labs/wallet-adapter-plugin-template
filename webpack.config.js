@@ -24,18 +24,18 @@ module.exports = {
   },
   optimization: {
     minimize: false, // minify 비활성화
-    minimizer: [
-      new TerserPlugin({
-        terserOptions: {
-          compress: false, // 압축 비활성화
-          mangle: false, // 난독화 비활성화
-          format: {
-            beautify: true, // 코드 포맷팅 활성화
-            comments: true, // 주석 유지
-          },
-        },
-      }),
-    ],
+    // minimizer: [
+    //   new TerserPlugin({
+    //     terserOptions: {
+    //       compress: true, // 압축 비활성화
+    //       mangle: true, // 난독화 비활성화
+    //       format: {
+    //         beautify: false, // 코드 포맷팅 활성화
+    //         comments: false, // 주석 유지
+    //       },
+    //     },
+    //   }),
+    // ],
   },
   devtool: 'source-map', // 소스 맵 생성
 };

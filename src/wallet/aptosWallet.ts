@@ -92,7 +92,7 @@ export class AptosStandard implements AptosWallet {
 
   readonly url: string = "https://lunchlunch.xyz";
   readonly version = "1.0.0";
-  readonly name: string = "Razor Wallet";
+  readonly name: string;
   readonly icon = LUNCH_ICON;
 
   chains = [APTOS_TESTNET_CHAIN, APTOS_MAINNET_CHAIN] as IdentifierArray;
@@ -146,7 +146,8 @@ export class AptosStandard implements AptosWallet {
     };
   }
 
-  constructor() {
+  constructor(name: string = "Razor Wallet") {
+     this.name= name;
     this.provider =
       typeof window !== "undefined" ? window.aptosWebView : undefined;
   }
