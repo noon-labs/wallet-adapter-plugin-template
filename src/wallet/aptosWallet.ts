@@ -49,6 +49,7 @@ interface AptosWebView {
   getAptosRestUrl: () => Promise<string>;
   getAptosFaucetUrl: () => Promise<string>;
   aptosTransactionSubmitted: (hash: string) => void;
+  requestCredential: (requestType: string, txOrMessage: string) => Promise<void>;
   handleResponse: (id: number, result: string) => void;
   handleError: (id: number, error: any) => void;
   callbacks: { [key: number]: (error: any, data: any) => void };
@@ -147,7 +148,7 @@ export class AptosStandard implements AptosWallet {
   }
 
   constructor(name: string = "Razor Wallet") {
-     this.name= name;
+    this.name = name;
     this.provider =
       typeof window !== "undefined" ? window.aptosWebView : undefined;
   }
@@ -242,6 +243,12 @@ export class AptosStandard implements AptosWallet {
         },
       });
       console.log("Tx Generated");
+    
+      await this.provider?.requestCredential('Transaction', JSON.stringify(tx,(key, value) => 
+        typeof value === 'bigint' ? value.toString() : value));
+
+      console.log("Credential Success");
+
       const committedTransaction = await this.aptos.signAndSubmitTransaction({
         signer: this.signer,
         transaction: tx,
@@ -259,7 +266,8 @@ export class AptosStandard implements AptosWallet {
           hash: committedTransaction.hash,
         },
       });
-    } catch {
+    } catch(e) {
+      console.log(e);
       return Promise.resolve({
         status: UserResponseStatus.REJECTED,
       });
@@ -276,6 +284,14 @@ export class AptosStandard implements AptosWallet {
         status: UserResponseStatus.REJECTED,
       });
     }
+    try {
+
+      await this.provider?.requestCredential('Transaction', JSON.stringify(transaction));
+    } catch {
+      return Promise.resolve({
+        status: UserResponseStatus.REJECTED,
+      });
+    }
 
     if (asFeePayer) {
       const senderAuthenticator = this.aptos.transaction.signAsFeePayer({
@@ -287,6 +303,7 @@ export class AptosStandard implements AptosWallet {
         args: senderAuthenticator,
       });
     }
+
     const senderAuthenticator = this.aptos.transaction.sign({
       signer: this.signer,
       transaction,
@@ -306,6 +323,15 @@ export class AptosStandard implements AptosWallet {
         status: UserResponseStatus.REJECTED,
       });
     }
+
+    try {
+      await this.provider?.requestCredential('Signature', JSON.stringify(input));
+    } catch {
+      return Promise.resolve({
+        status: UserResponseStatus.REJECTED,
+      });
+    }
+
     // 'Aptos' + application + address + nonce + chainId + message
     const messageToSign = `Aptos
       LunchLunch
@@ -313,6 +339,7 @@ export class AptosStandard implements AptosWallet {
       ${input.nonce}
       ${input.chainId ?? (await this.network()).chainId}
       ${input.message}`;
+
 
     const encodedMessageToSign = new TextEncoder().encode(messageToSign);
 

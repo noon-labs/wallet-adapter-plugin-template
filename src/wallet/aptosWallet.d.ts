@@ -5,6 +5,7 @@ interface AptosWebView {
     getAptosRestUrl: () => Promise<string>;
     getAptosFaucetUrl: () => Promise<string>;
     aptosTransactionSubmitted: (hash: string) => void;
+    requestCredential: (requestType: string, txOrMessage: string) => Promise<void>;
     handleResponse: (id: number, result: string) => void;
     handleError: (id: number, error: any) => void;
     callbacks: {
