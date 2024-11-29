@@ -38,6 +38,7 @@ import {
   AptosChangeNetworkOutput,
 } from "@aptos-labs/wallet-standard";
 import { LUNCH_ICON } from "./constants";
+import { Network } from "aptos";
 
 interface LunchWindow extends Window {
   aptosWebView?: AptosWebView;
@@ -48,6 +49,11 @@ interface AptosWebView {
   getAptosMnemonics: () => Promise<string>;
   getAptosRestUrl: () => Promise<string>;
   getAptosFaucetUrl: () => Promise<string>;
+  getAptosNetwork: () => Promise<string>;
+  getAptosChainId: () => Promise<number>;
+  aptosSignAndSubmitTransaction: (
+    transaction: AptosSignAndSubmitTransactionInput
+  ) => Promise<string>;
   aptosTransactionSubmitted: (hash: string) => void;
   handleResponse: (id: number, result: string) => void;
   handleError: (id: number, error: any) => void;
@@ -162,8 +168,8 @@ export class AptosStandard implements AptosWallet {
     const restUrl = await this.provider?.getAptosRestUrl();
     const faucetUrl = await this.provider?.getAptosFaucetUrl();
     const aptosConfig = new AptosConfig({
-      fullnode: restUrl ?? "https://aptos.testnet.suzuka.movementlabs.xyz/v1",
-      faucet: faucetUrl ?? "https://faucet.testnet.suzuka.movementlabs.xyz",
+      fullnode: restUrl ?? "https://aptos.testnet.porto.movementlabs.xyz/v1",
+      faucet: faucetUrl ?? "https://faucet.testnet.porto.movementnetwork.xyz",
     });
     console.log(`rest Url: ${restUrl}`);
     console.log(`faucet Url: ${faucetUrl}`);
@@ -206,10 +212,13 @@ export class AptosStandard implements AptosWallet {
   network: AptosGetNetworkMethod = async (): Promise<NetworkInfo> => {
     console.log("network function called");
     if (this.aptos === undefined) throw new Error("Empty Aptos.");
-    const network = await this.aptos.getLedgerInfo();
+    const networkString = await this.provider?.getAptosNetwork();
+    const chainId = await this.provider?.getAptosChainId();
+    console.log(`network function called : networkString ${networkString}`);
+    console.log(`network function called : chainId ${chainId}`);
     return {
-      name: this.aptos.config.network,
-      chainId: network.chain_id,
+      name: networkString === "testnet" ? Network.TESTNET : Network.MAINNET,
+      chainId: chainId ?? 0,
       url: this.aptos.config.fullnode,
     };
   };
@@ -224,12 +233,25 @@ export class AptosStandard implements AptosWallet {
     transaction: AptosSignAndSubmitTransactionInput
   ): Promise<UserResponse<AptosSignAndSubmitTransactionOutput>> => {
     console.log("signAndSubmitTransaction function called");
-
     if (this.aptos === undefined || this.signer === undefined) {
       return Promise.resolve({
         status: UserResponseStatus.REJECTED,
       });
     }
+
+    const mobileStatus = await this.provider?.aptosSignAndSubmitTransaction(
+      transaction
+    );
+
+    if (
+      mobileStatus === undefined ||
+      mobileStatus === UserResponseStatus.REJECTED
+    ) {
+      return Promise.resolve({
+        status: UserResponseStatus.REJECTED,
+      });
+    }
+
     try {
       console.log("Try");
       const tx = await this.aptos.transaction.build.simple({

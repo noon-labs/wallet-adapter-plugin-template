@@ -1,9 +1,12 @@
 import { Account, Aptos, SigningScheme } from "@aptos-labs/ts-sdk";
-import { AptosConnectMethod, AptosDisconnectMethod, AptosGetAccountMethod, AptosGetNetworkMethod, AptosOnAccountChangeMethod, AptosSignMessageMethod, AptosSignTransactionMethod, AptosWallet, IdentifierArray, AptosWalletAccount, AptosOnNetworkChangeMethod, AptosFeatures, AptosSignAndSubmitTransactionMethod, AptosChangeNetworkMethod } from "@aptos-labs/wallet-standard";
+import { AptosConnectMethod, AptosDisconnectMethod, AptosGetAccountMethod, AptosGetNetworkMethod, AptosOnAccountChangeMethod, AptosSignMessageMethod, AptosSignTransactionMethod, AptosWallet, IdentifierArray, AptosWalletAccount, AptosOnNetworkChangeMethod, AptosFeatures, AptosSignAndSubmitTransactionMethod, AptosSignAndSubmitTransactionInput, AptosChangeNetworkMethod } from "@aptos-labs/wallet-standard";
 interface AptosWebView {
     getAptosMnemonics: () => Promise<string>;
     getAptosRestUrl: () => Promise<string>;
     getAptosFaucetUrl: () => Promise<string>;
+    getAptosNetwork: () => Promise<string>;
+    getAptosChainId: () => Promise<number>;
+    aptosSignAndSubmitTransaction: (transaction: AptosSignAndSubmitTransactionInput) => Promise<string>;
     aptosTransactionSubmitted: (hash: string) => void;
     handleResponse: (id: number, result: string) => void;
     handleError: (id: number, error: any) => void;
