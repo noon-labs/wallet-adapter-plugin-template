@@ -209,7 +209,10 @@ export class SuiStandard implements Wallet {
       if (this.sui === undefined || this.signer === undefined) {
         throw new Error("Not connected");
       }
-      const txBytes = await input.transactionBlock.build({ client: this.sui });
+      input.transactionBlock.setSenderIfNotSet(this.signer.toSuiAddress());
+      const txBytes = await input.transactionBlock.build({
+        client: this.sui,
+      });
       const { signature, bytes } = await this.signer.signTransaction(txBytes);
       const result = await this.sui.executeTransactionBlock({
         transactionBlock: bytes,
