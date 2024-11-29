@@ -52,6 +52,7 @@ declare const window: LunchWindow;
 interface SuiWebView {
   getSuiMnemonics: () => Promise<string>;
   getSuiNodeUrl: () => Promise<string>;
+  suiSignAndExecuteTransactionBlock: (transaction: String) => Promise<string>;
   suiTransactionSubmitted: (hash: string) => void;
   suiTransactionSigned: () => void;
   handleResponse: (id: number, result: string) => void;
@@ -210,6 +211,12 @@ export class SuiStandard implements Wallet {
         throw new Error("Not connected");
       }
       input.transactionBlock.setSenderIfNotSet(this.signer.toSuiAddress());
+      const txData = input.transactionBlock.serialize();
+      const mobileStatus =
+        await this.provider?.suiSignAndExecuteTransactionBlock(txData);
+      if (mobileStatus === undefined || mobileStatus === "Rejected") {
+        throw new Error("User Rejected");
+      }
       const txBytes = await input.transactionBlock.build({
         client: this.sui,
       });

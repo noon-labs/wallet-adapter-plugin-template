@@ -4,6 +4,7 @@ import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 interface SuiWebView {
     getSuiMnemonics: () => Promise<string>;
     getSuiNodeUrl: () => Promise<string>;
+    suiSignAndExecuteTransactionBlock: (transaction: String) => Promise<string>;
     suiTransactionSubmitted: (hash: string) => void;
     suiTransactionSigned: () => void;
     handleResponse: (id: number, result: string) => void;
