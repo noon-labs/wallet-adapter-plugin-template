@@ -2,10 +2,11 @@ import { IdentifierArray, ReadonlyWalletAccount, StandardConnectFeature, Standar
 import { SuiClient } from "@mysten/sui/client";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 interface SuiWebView {
-    getSuiMnemonics: () => Promise<string>;
-    getSuiNodeUrl: () => Promise<string>;
-    suiTransactionSubmitted: (hash: string) => void;
-    suiTransactionSigned: () => void;
+    getMnemonics: () => Promise<string>;
+    getNodeUrl: () => Promise<string>;
+    transactionSubmitted: (hash: string) => void;
+    transactionSigned: () => void;
+    requestCredential: (requestType: string, txOrMessage: string) => Promise<void>;
     handleResponse: (id: number, result: string) => void;
     handleError: (id: number, error: any) => void;
     callbacks: {

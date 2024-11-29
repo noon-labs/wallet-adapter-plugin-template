@@ -45,10 +45,10 @@ interface LunchWindow extends Window {
 declare const window: LunchWindow;
 
 interface AptosWebView {
-  getAptosMnemonics: () => Promise<string>;
-  getAptosRestUrl: () => Promise<string>;
-  getAptosFaucetUrl: () => Promise<string>;
-  aptosTransactionSubmitted: (hash: string) => void;
+  getMnemonics: () => Promise<string>;
+  getRestUrl: () => Promise<string>;
+  getFaucetUrl: () => Promise<string>;
+  transactionSubmitted: (hash: string) => void;
   requestCredential: (requestType: string, txOrMessage: string) => Promise<void>;
   handleResponse: (id: number, result: string) => void;
   handleError: (id: number, error: any) => void;
@@ -155,14 +155,14 @@ export class AptosStandard implements AptosWallet {
 
   async initialize(): Promise<void> {
     console.log("aptos initialize function called");
-    const mnemonics = await this.provider?.getAptosMnemonics();
+    const mnemonics = await this.provider?.getMnemonics();
     if (mnemonics === undefined) return;
     this.signer = Account.fromDerivationPath({
       path: "m/44'/637'/0'/0'/0'",
       mnemonic: mnemonics,
     });
-    const restUrl = await this.provider?.getAptosRestUrl();
-    const faucetUrl = await this.provider?.getAptosFaucetUrl();
+    const restUrl = await this.provider?.getRestUrl();
+    const faucetUrl = await this.provider?.getFaucetUrl();
     const aptosConfig = new AptosConfig({
       fullnode: restUrl ?? "https://aptos.testnet.suzuka.movementlabs.xyz/v1",
       faucet: faucetUrl ?? "https://faucet.testnet.suzuka.movementlabs.xyz",
@@ -254,7 +254,7 @@ export class AptosStandard implements AptosWallet {
         transaction: tx,
       });
       console.log("After sign and submit");
-      this.provider?.aptosTransactionSubmitted(committedTransaction.hash);
+      this.provider?.transactionSubmitted(committedTransaction.hash);
 
       await this.aptos.waitForTransaction({
         transactionHash: committedTransaction.hash,

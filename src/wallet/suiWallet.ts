@@ -42,7 +42,7 @@ import { LUNCH_ICON } from "./constants";
 import { SuiClient } from "@mysten/sui/client";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { Transaction } from "@mysten/sui/transactions";
-import { toB64 } from "@mysten/bcs";
+import { toBase64 } from "@mysten/bcs";
 
 interface LunchWindow extends Window {
   suiWebView?: SuiWebView;
@@ -50,10 +50,11 @@ interface LunchWindow extends Window {
 declare const window: LunchWindow;
 
 interface SuiWebView {
-  getSuiMnemonics: () => Promise<string>;
-  getSuiNodeUrl: () => Promise<string>;
-  suiTransactionSubmitted: (hash: string) => void;
-  suiTransactionSigned: () => void;
+  getMnemonics: () => Promise<string>;
+  getNodeUrl: () => Promise<string>;
+  transactionSubmitted: (hash: string) => void;
+  transactionSigned: () => void;
+  requestCredential: (requestType: string, txOrMessage: string) => Promise<void>;
   handleResponse: (id: number, result: string) => void;
   handleError: (id: number, error: any) => void;
   callbacks: { [key: number]: (error: any, data: any) => void };
@@ -155,10 +156,10 @@ export class SuiStandard implements Wallet {
 
   async initialize(): Promise<void> {
     console.log("Sui initialize function called");
-    const mnemonics = await this.provider?.getSuiMnemonics();
+    const mnemonics = await this.provider?.getMnemonics();
     if (mnemonics === undefined) return;
     this.signer = Ed25519Keypair.deriveKeypair(mnemonics);
-    const nodeUrl = await this.provider?.getSuiNodeUrl();
+    const nodeUrl = await this.provider?.getNodeUrl();
     console.log(`node Url: ${nodeUrl}`);
     if (nodeUrl === undefined) return;
     this.sui = new SuiClient({
@@ -209,6 +210,10 @@ export class SuiStandard implements Wallet {
       if (this.sui === undefined || this.signer === undefined) {
         throw new Error("Not connected");
       }
+      input.transactionBlock.setSenderIfNotSet(this.signer.toSuiAddress());
+      const txData = input.transactionBlock.serialize()
+      await this.provider?.requestCredential('Transaction', txData);
+
       const txBytes = await input.transactionBlock.build({ client: this.sui });
       const { signature, bytes } = await this.signer.signTransaction(txBytes);
       const result = await this.sui.executeTransactionBlock({
@@ -216,7 +221,7 @@ export class SuiStandard implements Wallet {
         signature,
         options: input.options,
       });
-      this.provider?.suiTransactionSubmitted(result.digest);
+      this.provider?.transactionSubmitted(result.digest);
       return result;
     };
 
@@ -229,6 +234,10 @@ export class SuiStandard implements Wallet {
     }
     const txString = await input.transaction.toJSON();
     const tx = Transaction.from(txString);
+
+    await this.provider?.requestCredential('Transaction', JSON.stringify(txString,(key, value) => 
+      typeof value === 'bigint' ? value.toString() : value));
+
     const txBytes = await tx.build({ client: this.sui });
     const { signature, bytes } = await this.signer.signTransaction(txBytes);
     const result = await this.sui.executeTransactionBlock({
@@ -241,9 +250,9 @@ export class SuiStandard implements Wallet {
     let effects: string = "";
     if (result.rawEffects) {
       const rawEffectsData = new Uint8Array(result.rawEffects);
-      effects = toB64(rawEffectsData);
+      effects = toBase64(rawEffectsData);
     }
-    this.provider?.suiTransactionSubmitted(result.digest);
+    this.provider?.transactionSubmitted(result.digest);
     return {
       digest: result.digest,
       /** Transaction effects as base64 encoded bcs. */
@@ -262,9 +271,13 @@ export class SuiStandard implements Wallet {
     if (this.sui === undefined || this.signer === undefined) {
       throw new Error("Not connected");
     }
+
+    await this.provider?.requestCredential('Transaction', JSON.stringify(input,(key, value) => 
+      typeof value === 'bigint' ? value.toString() : value));
+
     const txBytes = await input.transactionBlock.build({ client: this.sui });
     const { signature, bytes } = await this.signer.signTransaction(txBytes);
-    this.provider?.suiTransactionSigned();
+    this.provider?.transactionSigned();
     return {
       /** Transaction as base64 encoded bcs. */
       transactionBlockBytes: bytes,
@@ -280,11 +293,15 @@ export class SuiStandard implements Wallet {
     if (this.sui === undefined || this.signer === undefined) {
       throw new Error("Not connected");
     }
+
+    await this.provider?.requestCredential('Transaction', JSON.stringify(input,(key, value) => 
+      typeof value === 'bigint' ? value.toString() : value));
+
     const txString = await input.transaction.toJSON();
     const tx = Transaction.from(txString);
     const txBytes = await tx.build({ client: this.sui });
     const { signature, bytes } = await this.signer.signTransaction(txBytes);
-    this.provider?.suiTransactionSigned();
+    this.provider?.transactionSigned();
     return {
       /** Transaction as base64 encoded bcs. */
       bytes,
@@ -300,6 +317,10 @@ export class SuiStandard implements Wallet {
     if (this.sui === undefined || this.signer === undefined) {
       throw new Error("Not connected");
     }
+
+    await this.provider?.requestCredential('Signature', JSON.stringify(input,(key, value) => 
+      typeof value === 'bigint' ? value.toString() : value));
+
     const result = await this.signer.signPersonalMessage(input.message);
 
     return {
@@ -317,6 +338,10 @@ export class SuiStandard implements Wallet {
     if (this.sui === undefined || this.signer === undefined) {
       throw new Error("Not connected");
     }
+
+    await this.provider?.requestCredential('Signature', JSON.stringify(input,(key, value) => 
+      typeof value === 'bigint' ? value.toString() : value));
+
     const result = await this.signer.signPersonalMessage(input.message);
 
     return {
