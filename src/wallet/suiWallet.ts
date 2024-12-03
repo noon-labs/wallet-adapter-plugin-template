@@ -52,7 +52,7 @@ declare const window: LunchWindow;
 interface SuiWebView {
   getSuiMnemonics: () => Promise<string>;
   getSuiNodeUrl: () => Promise<string>;
-  suiSignAndExecuteTransactionBlock: (transaction: String) => Promise<string>;
+  suiMobileConfirm: (transaction: String) => Promise<string>;
   suiTransactionSubmitted: (hash: string) => void;
   suiTransactionSigned: () => void;
   handleResponse: (id: number, result: string) => void;
@@ -212,8 +212,7 @@ export class SuiStandard implements Wallet {
       }
       input.transactionBlock.setSenderIfNotSet(this.signer.toSuiAddress());
       const txData = input.transactionBlock.serialize();
-      const mobileStatus =
-        await this.provider?.suiSignAndExecuteTransactionBlock(txData);
+      const mobileStatus = await this.provider?.suiMobileConfirm(txData);
       if (mobileStatus === undefined || mobileStatus === "Rejected") {
         throw new Error("User Rejected");
       }
@@ -238,6 +237,10 @@ export class SuiStandard implements Wallet {
       throw new Error("Not connected");
     }
     const txString = await input.transaction.toJSON();
+    const mobileStatus = await this.provider?.suiMobileConfirm(txString);
+    if (mobileStatus === undefined || mobileStatus === "Rejected") {
+      throw new Error("User Rejected");
+    }
     const tx = Transaction.from(txString);
     const txBytes = await tx.build({ client: this.sui });
     const { signature, bytes } = await this.signer.signTransaction(txBytes);
@@ -272,6 +275,12 @@ export class SuiStandard implements Wallet {
     if (this.sui === undefined || this.signer === undefined) {
       throw new Error("Not connected");
     }
+    input.transactionBlock.setSenderIfNotSet(this.signer.toSuiAddress());
+    const txData = input.transactionBlock.serialize();
+    const mobileStatus = await this.provider?.suiMobileConfirm(txData);
+    if (mobileStatus === undefined || mobileStatus === "Rejected") {
+      throw new Error("User Rejected");
+    }
     const txBytes = await input.transactionBlock.build({ client: this.sui });
     const { signature, bytes } = await this.signer.signTransaction(txBytes);
     this.provider?.suiTransactionSigned();
@@ -291,6 +300,10 @@ export class SuiStandard implements Wallet {
       throw new Error("Not connected");
     }
     const txString = await input.transaction.toJSON();
+    const mobileStatus = await this.provider?.suiMobileConfirm(txString);
+    if (mobileStatus === undefined || mobileStatus === "Rejected") {
+      throw new Error("User Rejected");
+    }
     const tx = Transaction.from(txString);
     const txBytes = await tx.build({ client: this.sui });
     const { signature, bytes } = await this.signer.signTransaction(txBytes);
