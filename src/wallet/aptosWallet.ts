@@ -98,7 +98,7 @@ export class AptosStandard implements AptosWallet {
 
   readonly url: string = "https://lunchlunch.xyz";
   readonly version = "1.0.0";
-  readonly name: string = "Razor Wallet";
+  readonly name: string;
   readonly icon = LUNCH_ICON;
 
   chains = [APTOS_TESTNET_CHAIN, APTOS_MAINNET_CHAIN] as IdentifierArray;
@@ -152,7 +152,8 @@ export class AptosStandard implements AptosWallet {
     };
   }
 
-  constructor() {
+  constructor(name: string = "Razor Wallet") {
+    this.name = name;
     this.provider =
       typeof window !== "undefined" ? window.aptosWebView : undefined;
   }
@@ -212,13 +213,14 @@ export class AptosStandard implements AptosWallet {
   network: AptosGetNetworkMethod = async (): Promise<NetworkInfo> => {
     console.log("network function called");
     if (this.aptos === undefined) throw new Error("Empty Aptos.");
-    const networkString = await this.provider?.getAptosNetwork();
-    const chainId = await this.provider?.getAptosChainId();
-    console.log(`network function called : networkString ${networkString}`);
-    console.log(`network function called : chainId ${chainId}`);
+    const network = await this.aptos.getLedgerInfo();
+    console.log(
+      `network function called : network ${this.aptos.config.network}`
+    );
+    console.log(`network function called : chainId ${network.chain_id}`);
     return {
-      name: networkString === "testnet" ? Network.TESTNET : Network.MAINNET,
-      chainId: chainId ?? 0,
+      name: this.aptos.config.network,
+      chainId: network.chain_id,
       url: this.aptos.config.fullnode,
     };
   };
