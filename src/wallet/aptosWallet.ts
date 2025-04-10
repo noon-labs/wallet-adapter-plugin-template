@@ -272,10 +272,15 @@ export class AptosStandard implements AptosWallet {
       console.log("After sign and submit");
       this.provider?.aptosTransactionSubmitted(committedTransaction.hash);
 
-      await this.aptos.waitForTransaction({
-        transactionHash: committedTransaction.hash,
-      });
-      console.log("wait done");
+      try {
+        await this.aptos.waitForTransaction({
+          transactionHash: committedTransaction.hash,
+        });
+        console.log("wait done");
+      } catch (error) {
+        console.log("waitForTransaction error ignored:", error);
+      }
+
       return Promise.resolve({
         status: UserResponseStatus.APPROVED,
         args: {
